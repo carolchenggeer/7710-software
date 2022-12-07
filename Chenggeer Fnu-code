@@ -1,0 +1,95 @@
+fat.dat <- read.table("C:/Users/cheng/Downloads/fat.dat.txt", 
+                      quote="\"", comment.char="")
+
+
+
+colnames(fat.dat)<- c("Case Number",
+                      "Percent_bodyfat_Brozek",
+                      "Percent_bodyfat_Siri",
+                      "Density","Age","Weight_lbs",
+                      "Height_inches",
+                      "Adiposity_index",
+                      "FatFree_Weight",
+                      "Neck",
+                      "Chest",
+                      "Abdomen", "Hip","Thigh",
+                      "Knee","Ankle","Extended_biceps",
+                      "Forearm","Wrist")
+                      
+head(fat.dat)
+
+fat.dat$Weight_kg <- fat.dat$Weight_lbs*0.453592
+fat.dat$Height_m <- fat.dat$Height_inches*0.0254
+
+head(fat.dat)
+
+
+fat.dat$Percent_bodyfat_Brozek <-c(457/fat.dat$Density - 414.2)
+fat.dat$Percent_bodyfat_Siri <-c(495/fat.dat$Density - 450)
+fix(fat.dat)
+str(fat.dat)
+
+
+
+fat.dat$BMI <- c(fat.dat$Weight_kg/fat.dat$Height_m^2)
+
+
+fat.dat$Weight_level[fat.dat$BMI < 18.5]= "underweight"
+fat.dat$Weight_level[fat.dat$BMI>=18.5 & fat.dat$BMI< 25]= "normal weight"
+fat.dat$Weight_level[fat.dat$BMI>= 25 & fat.dat$BMI < 30 ]= "overweight"
+fat.dat$Weight_level[fat.dat$BMI >= 30]= "obese"
+summary(fat.dat)
+
+install.packages("ISLR")
+library(ISLR)
+library(ggplot2)
+
+par(mfrow = c (1,1))
+ggplot(data=fat.dat, aes(x=Age, y=Abdomen, color= Weight_level, fill= Weight_level))+
+  geom_col()+facet_wrap(~Weight_level)
+
+ggplot(data=fat.dat, aes(x=Age, y= Percent_bodyfat_Brozek, color = Weight_level,
+                         linetype= Weight_level))+
+  geom_point()
+
+
+
+Brozek <- fat.dat[ , c ("Percent_bodyfat_Brozek",
+                        "Density","Age","Adiposity_index",
+                        "FatFree_Weight",
+                        "Neck",
+                        "Chest",
+                        "Abdomen", "Hip","Thigh",
+                        "Knee","Ankle","Extended_biceps",
+                        "Forearm","Wrist", "Weight_kg", "Height_m" )]
+
+head(Brozek)
+pairs(Brozek, pch = 18, col = "steelblue")
+
+
+install.packages("randomForest")
+library(randomForest)
+
+rf_Brozek<- randomForest(Percent_bodyfat_Brozek ~., data=Brozek, ntree=100)
+print(rf_Brozek)
+importance(rf_Brozek)
+varImpPlot(rf_Brozek)
+
+Brozek_mul <-as.data.frame(Brozek[,c("Percent_bodyfat_Brozek",
+                                     "Density", "Abdomen", "Adiposity_index",
+                                     "Chest", "Hip", "FatFree_Weight", "Weight_kg")])
+fit_Brozek <- lm(Percent_bodyfat_Brozek ~ Density + Abdomen + Adiposity_index + Chest
+                 + Hip + FatFree_Weight + Weight_kg, data = Brozek_mul)
+summary(fit_Brozek)
+
+
+par(mfrow=c(2,2))
+plot(fit_Brozek)
+
+rf_age <- randomForest(Age ~., data=Brozek, ntree=1000)
+print(rf_age)
+importance(rf_age)
+varImpPlot(rf_age)
+
+fit_age <- lm (Age ~., data = Brozek) 
+summary(fit_age)
